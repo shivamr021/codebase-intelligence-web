@@ -125,3 +125,20 @@
     -webkit-backdrop-filter: blur(14px);
   }
 }
+
+.mermaid-wrapper {
+  width: 100%;
+  overflow: auto;
+}
+
+.mermaid-wrapper svg {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 1200px;
+  display: block;
+  margin: 0 auto;
+}
+
+.mermaid-wrapper svg text {
+  font-size: 13px !important;
+}

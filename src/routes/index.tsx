@@ -73,9 +73,8 @@ function Index() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [loadingLabel, setLoadingLabel] = useState(
-    "Indexing repository"
-  );
+  const [loadingLabel, setLoadingLabel] =
+    useState("Indexing repository");
 
   const [error, setError] = useState<string | null>(
     null
@@ -180,7 +179,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground antialiased">
 
-      {/* NAV */}
+      {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
 
@@ -221,6 +220,7 @@ function Index() {
       {/* HERO */}
       <section className="relative overflow-hidden">
 
+        {/* Ambient background layers */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 grid-bg" />
 
@@ -238,20 +238,23 @@ function Index() {
 
         <div className="relative mx-auto flex max-w-5xl flex-col items-center px-6 pb-24 pt-20 text-center md:pt-28">
 
-          {/* STATUS BADGE */}
+          {/* Live status badge */}
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.05] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary/90 backdrop-blur">
+
             <span className="relative flex h-2 w-2">
               <span className="ping-slow absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
 
             AI-powered static analysis · LLM-backed
           </div>
 
-          {/* HEADLINE */}
+          {/* Headline */}
           <h1 className="text-balance text-5xl font-extrabold leading-[1.05] tracking-tight md:text-7xl">
             Understand any codebase
             <br />
+
             <span className="text-gradient">
               in seconds, not weeks.
             </span>
@@ -267,11 +270,13 @@ function Index() {
             </span>
           </p>
 
-          {/* INPUT */}
+          {/* Input */}
           <form
             onSubmit={analyse}
             className="group relative mx-auto mt-10 w-full max-w-2xl"
           >
+
+            {/* outer gradient halo */}
             <div
               className="absolute -inset-1 rounded-2xl opacity-30 blur transition duration-500 group-focus-within:opacity-60"
               style={{
@@ -298,7 +303,9 @@ function Index() {
 
               <Button
                 type="submit"
-                disabled={loading || !url.trim()}
+                disabled={
+                  loading || !url.trim()
+                }
                 className="h-11 gap-2 rounded-lg bg-primary px-5 font-semibold text-primary-foreground shadow-[0_0_24px_oklch(0.745_0.142_184/0.45)] transition-all hover:bg-primary/90 disabled:opacity-60"
               >
                 {loading ? (
@@ -314,6 +321,19 @@ function Index() {
                 )}
               </Button>
             </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
+
+              <span className="inline-flex items-center gap-2">
+                <span>Press</span>
+
+                <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono normal-case">
+                  Enter
+                </kbd>
+
+                <span>to index</span>
+              </span>
+            </div>
           </form>
 
           {error && (
@@ -327,8 +347,107 @@ function Index() {
               label={loadingLabel}
             />
           )}
+
+          {/* Feature ticker */}
+          <div className="mt-16 flex flex-col items-center gap-3">
+
+            <div className="flex items-center gap-3 opacity-70">
+              <div className="h-px w-8 bg-border" />
+
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                Outputs
+              </span>
+
+              <div className="h-px w-8 bg-border" />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+
+              {FEATURE_TAGS.map((tag, i) => (
+                <span
+                  key={tag}
+                  className="flex items-center gap-7"
+                >
+                  <span className="transition-colors hover:text-primary">
+                    {tag}
+                  </span>
+
+                  {i <
+                    FEATURE_TAGS.length -
+                      1 && (
+                    <span className="hidden h-1 w-1 rounded-full bg-border md:inline-block" />
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* FEATURE PREVIEW SECTION */}
+      {!result && !loading && (
+        <section
+          id="features"
+          className="relative mx-auto max-w-7xl px-6 pb-24"
+        >
+          <div className="mb-10 text-center">
+
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-primary/90">
+              Four lenses · one repo
+            </div>
+
+            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+              From{" "}
+              <span className="font-mono text-primary">
+                git
+              </span>{" "}
+              <span className="font-mono text-primary">
+                clone
+              </span>{" "}
+              to deep understanding.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+            <FeatureCard
+              icon={
+                <MessageSquareCode className="h-5 w-5" />
+              }
+              title="Q&A Chat"
+              desc="Ask anything. Get answers cited to exact files and lines."
+              accent="Where is auth handled?"
+            />
+
+            <FeatureCard
+              icon={
+                <Network className="h-5 w-5" />
+              }
+              title="Dependency Graph"
+              desc="Interactive map of every module, import, and cycle."
+              accent="124 nodes · 287 edges"
+            />
+
+            <FeatureCard
+              icon={
+                <Bug className="h-5 w-5" />
+              }
+              title="Bug Report"
+              desc="LLM-surfaced issues ranked by severity with fixes."
+              accent="3 high · 7 med · 12 low"
+            />
+
+            <FeatureCard
+              icon={
+                <GitBranch className="h-5 w-5" />
+              }
+              title="Architecture"
+              desc="Auto-generated Mermaid diagram of the system."
+              accent="rendered live"
+            />
+          </div>
+        </section>
+      )}
 
       {/* RESULTS */}
       {result && (
@@ -452,6 +571,53 @@ function Index() {
           </Tabs>
         </section>
       )}
+
+      <footer className="border-t border-border/60 py-8 text-center text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        Built for developers · Powered by embeddings + LLM reasoning
+      </footer>
+    </div>
+  );
+}
+
+function FeatureCard({
+  icon,
+  title,
+  desc,
+  accent,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  accent: string;
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-card/50 p-5 backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card/70">
+
+      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary/10 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
+
+      <div className="relative">
+
+        <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+          {icon}
+        </div>
+
+        <h3 className="text-base font-semibold tracking-tight">
+          {title}
+        </h3>
+
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          {desc}
+        </p>
+
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-white/5 bg-background/60 px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+
+          <FileCode2 className="h-3 w-3 text-primary" />
+
+          <span className="truncate">
+            {accent}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -465,6 +631,7 @@ function Stat({
 }) {
   return (
     <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1.5 text-center">
+
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </div>
@@ -496,15 +663,17 @@ function LoadingState({
     <div className="mx-auto mt-8 w-full max-w-md rounded-xl border border-white/10 bg-card/60 p-5 text-left shadow-elevated backdrop-blur">
 
       <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+
         <Sparkles className="h-4 w-4 text-primary" />
 
         {isChecking
-          ? "Checking if this repository is already indexed…"
+          ? "Checking if this repo is already indexed…"
           : `${label}… this may take a minute`}
       </div>
 
       {!isChecking && (
         <ul className="space-y-2 text-xs text-muted-foreground">
+
           {STEPS.map((s, i) => (
             <li
               key={s}
