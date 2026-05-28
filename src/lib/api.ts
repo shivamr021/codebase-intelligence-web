@@ -1,5 +1,7 @@
 export const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ?? "https://codebase-intelligence-system.up.railway.app";
+  import.meta.env.VITE_API_BASE_URL ??
+  "https://codebase-intelligence-system.up.railway.app";
+
 export const API_DOCS_URL = `${API_BASE}/docs`;
 
 export interface IngestResponse {
@@ -48,20 +50,47 @@ export interface DiagramResponse {
   mermaid: string;
 }
 
+export interface CheckResponse {
+  indexed: boolean;
+  chunks: number;
+}
+
+export function repoNameFromUrl(url: string): string {
+  return url
+    .replace(/\/$/, "")
+    .split("/")
+    .pop()!
+    .replace(".git", "");
+}
+
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    // Log raw details for debugging without leaking to UI
     res
       .text()
       .catch(() => "")
       .then((text) => {
         console.error(`API error ${res.status}:`, text || res.statusText);
       });
-    if (res.status === 429) throw new Error("Too many requests. Please try again shortly.");
-    if (res.status === 404) throw new Error("Not found. The requested resource is unavailable.");
-    if (res.status >= 500) throw new Error("The service is temporarily unavailable. Please try again.");
-    throw new Error("Request failed. Please check your input and try again.");
+
+    if (res.status === 429) {
+      throw new Error("Too many requests. Please try again shortly.");
+    }
+
+    if (res.status === 404) {
+      throw new Error("Not found. The requested resource is unavailable.");
+    }
+
+    if (res.status >= 500) {
+      throw new Error(
+        "The service is temporarily unavailable. Please try again."
+      );
+    }
+
+    throw new Error(
+      "Request failed. Please check your input and try again."
+    );
   }
+
   return res.json() as Promise<T>;
 }
 
@@ -81,11 +110,22 @@ export const api = {
     }).then(handle<AskResponse>),
 
   bugs: (repo_name: string) =>
-    fetch(`${API_BASE}/api/v1/bugs?repo_name=${encodeURIComponent(repo_name)}`).then(handle<BugsResponse>),
+    fetch(
+      `${API_BASE}/api/v1/bugs?repo_name=${encodeURIComponent(repo_name)}`
+    ).then(handle<BugsResponse>),
 
   graph: (repo_name: string) =>
-    fetch(`${API_BASE}/api/v1/graph?repo_name=${encodeURIComponent(repo_name)}`).then(handle<GraphResponse>),
+    fetch(
+      `${API_BASE}/api/v1/graph?repo_name=${encodeURIComponent(repo_name)}`
+    ).then(handle<GraphResponse>),
 
   diagram: (repo_name: string) =>
-    fetch(`${API_BASE}/api/v1/diagram?repo_name=${encodeURIComponent(repo_name)}`).then(handle<DiagramResponse>),
+    fetch(
+      `${API_BASE}/api/v1/diagram?repo_name=${encodeURIComponent(repo_name)}`
+    ).then(handle<DiagramResponse>),
+
+  check: (repo_name: string) =>
+    fetch(
+      `${API_BASE}/api/v1/check?repo_name=${encodeURIComponent(repo_name)}`
+    ).then(handle<CheckResponse>),
 };
