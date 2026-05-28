@@ -1,0 +1,54 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="40" y1="40" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6EE7FF"/>
+      <stop offset="0.5" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Document -->
+  <path d="M90 40H160L200 80V180C200 191 191 200 180 200H90C79 200 70 191 70 180V60C70 49 79 40 90 40Z"
+        stroke="url(#grad)" stroke-width="10" fill="none" stroke-linejoin="round"/>
+
+  <!-- Fold -->
+  <path d="M160 40V80H200"
+        stroke="url(#grad)" stroke-width="10" fill="none" stroke-linejoin="round"/>
+
+  <!-- Code Symbol -->
+  <path d="M110 95L95 110L110 125"
+        stroke="url(#grad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <path d="M150 95L165 110L150 125"
+        stroke="url(#grad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <path d="M132 88L123 132"
+        stroke="url(#grad)" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Code lines -->
+  <path d="M95 145H170" stroke="url(#grad)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M95 160H150" stroke="url(#grad)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M95 175H135" stroke="url(#grad)" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Magnifying glass -->
+  <circle cx="170" cy="170" r="38"
+          stroke="url(#grad)" stroke-width="10" fill="rgba(255,255,255,0.05)"/>
+
+  <path d="M198 198L225 225"
+        stroke="url(#grad)" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- AI dots -->
+  <circle cx="158" cy="170" r="4" fill="url(#grad)"/>
+  <circle cx="170" cy="170" r="4" fill="url(#grad)"/>
+  <circle cx="182" cy="170" r="4" fill="url(#grad)"/>
+
+  <!-- Left graph nodes -->
+  <circle cx="40" cy="90" r="10" stroke="url(#grad)" stroke-width="6" fill="none"/>
+  <circle cx="28" cy="140" r="10" stroke="url(#grad)" stroke-width="6" fill="none"/>
+  <circle cx="55" cy="185" r="10" stroke="url(#grad)" stroke-width="6" fill="none"/>
+
+  <path d="M40 100V130L55 145V175"
+        stroke="url(#grad)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M38 140H55"
+        stroke="url(#grad)" stroke-width="5" stroke-linecap="round"/>
+</svg>
