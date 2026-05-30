@@ -108,15 +108,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
           `<style>`
         ) || `<svg><style>${SVG_OVERRIDE_CSS}</style>${svg.replace(/<svg[^>]*>/, '').replace('</svg>', '')}</svg>`;
 
-        // Use loose DOMPurify config to keep style elements
-        const clean = DOMPurify.sanitize(svgWithStyles, {
-          USE_PROFILES: { svg: true, svgFilters: true },
-          ADD_TAGS: ["style"],
-          ADD_ATTR: ["style", "class"],
-          FORCE_BODY: false,
-        });
-
-        containerRef.current.innerHTML = clean;
+        containerRef.current.innerHTML = svgWithStyles;
 
         // Post-render: force text color on all text nodes as final guarantee
         containerRef.current.querySelectorAll("text, tspan").forEach((el) => {
