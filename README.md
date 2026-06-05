@@ -1,6 +1,6 @@
 # IntelliRepo Web
 
-🔗 Live Demo: https://intellirepo.shivamrathod145.workers.dev/
+🔗 Live Demo: https://codebase-intelligence.shivamrathod145.workers.dev/
 
 Frontend application for IntelliRepo — an AI-powered repository intelligence platform that helps developers understand unfamiliar codebases through semantic search, dependency graph visualization, architecture analysis, and AI-assisted code review.
 
