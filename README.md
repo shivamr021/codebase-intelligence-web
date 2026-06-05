@@ -1,14 +1,14 @@
-# IntelliRepo Web
+# Codebase Intelligence Web
 
 🔗 Live Demo: https://codebase-intelligence.shivamrathod145.workers.dev/
 
-Frontend application for IntelliRepo — an AI-powered repository intelligence platform that helps developers understand unfamiliar codebases through semantic search, dependency graph visualization, architecture analysis, and AI-assisted code review.
+Frontend application for Codebase Intelligence — an AI-powered repository intelligence platform that helps developers understand unfamiliar codebases through semantic search, dependency graph visualization, architecture analysis, and AI-assisted code review.
 
 ## Overview
 
 Understanding a large repository often requires manually exploring files, tracing imports, and identifying architectural boundaries before meaningful contributions can be made.
 
-IntelliRepo Web provides a unified interface for interacting with the IntelliRepo backend and exploring repository insights through an intuitive web experience.
+Codebase Intelligence Web provides a unified interface for interacting with the Codebase Intelligence backend and exploring repository insights through an intuitive web experience.
 
 The application enables developers to:
 
@@ -210,8 +210,8 @@ src/
 ### Clone Repository
 
 ```bash
-git clone https://github.com/shivamr021/intellirepo-web.git
-cd intellirepo-web
+git clone https://github.com/shivamr021/codebase-intelligence-web.git
+cd codebase-intelligence-web
 ```
 
 ### Install Dependencies
@@ -246,7 +246,7 @@ http://localhost:3000
 
 ## Backend
 
-The frontend communicates with the IntelliRepo backend API for:
+The frontend communicates with the Codebase Intelligence backend API for:
 
 * Repository ingestion
 * Semantic search
