@@ -59,20 +59,50 @@ export function repoNameFromUrl(url: string): string {
     .replace(/\/$/, "")
     .split("/")
     .pop()!
-    .replace(".git", "");
+    .replace(/\.git$/, "");
+}
+
+// Sends every call to the backend; never requests `undefined/...`.
+function request(path: string, init?: RequestInit): Promise<Response> {
+  if (!API_BASE) {
+    return Promise.reject(
+      new Error("VITE_API_BASE_URL is not set. Set it to the backend URL and rebuild.")
+    );
+  }
+  return fetch(`${API_BASE}${path}`, init).catch(() => {
+    throw new Error("Cannot reach the backend. Check that it is running and try again.");
+  });
+}
+
+// FastAPI sends `detail` as a string, or as a list of `{ msg }` items on 422.
+function detailMessage(body: string): string | null {
+  try {
+    const { detail } = JSON.parse(body);
+    if (typeof detail === "string" && detail) return detail;
+    if (Array.isArray(detail)) {
+      const msgs = detail
+        .map((item) => item?.msg)
+        .filter((msg): msg is string => typeof msg === "string" && msg !== "");
+      if (msgs.length) return msgs.join("; ");
+    }
+  } catch {
+    // Not JSON (for example an HTML error page): fall back to the generic text.
+  }
+  return null;
 }
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    res
-      .text()
-      .catch(() => "")
-      .then((text) => {
-        console.error(`API error ${res.status}:`, text || res.statusText);
-      });
+    const text = await res.text().catch(() => "");
+    console.error(`API error ${res.status}:`, text || res.statusText);
 
     if (res.status === 429) {
       throw new Error("Too many requests. Please try again shortly.");
+    }
+
+    const detail = detailMessage(text);
+    if (detail) {
+      throw new Error(detail);
     }
 
     if (res.status === 404) {
@@ -95,36 +125,36 @@ async function handle<T>(res: Response): Promise<T> {
 
 export const api = {
   ingest: (github_url: string) =>
-    fetch(`${API_BASE}/api/v1/ingest`, {
+    request("/api/v1/ingest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ github_url }),
     }).then(handle<IngestResponse>),
 
   ask: (repo_name: string, question: string) =>
-    fetch(`${API_BASE}/api/v1/ask`, {
+    request("/api/v1/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_name, question }),
     }).then(handle<AskResponse>),
 
   bugs: (repo_name: string) =>
-    fetch(
-      `${API_BASE}/api/v1/bugs?repo_name=${encodeURIComponent(repo_name)}`
+    request(
+      `/api/v1/bugs?repo_name=${encodeURIComponent(repo_name)}`
     ).then(handle<BugsResponse>),
 
   graph: (repo_name: string) =>
-    fetch(
-      `${API_BASE}/api/v1/graph?repo_name=${encodeURIComponent(repo_name)}`
+    request(
+      `/api/v1/graph?repo_name=${encodeURIComponent(repo_name)}`
     ).then(handle<GraphResponse>),
 
   diagram: (repo_name: string) =>
-    fetch(
-      `${API_BASE}/api/v1/diagram?repo_name=${encodeURIComponent(repo_name)}`
+    request(
+      `/api/v1/diagram?repo_name=${encodeURIComponent(repo_name)}`
     ).then(handle<DiagramResponse>),
 
   check: (repo_name: string) =>
-    fetch(
-      `${API_BASE}/api/v1/check?repo_name=${encodeURIComponent(repo_name)}`
+    request(
+      `/api/v1/check?repo_name=${encodeURIComponent(repo_name)}`
     ).then(handle<CheckResponse>),
 };
