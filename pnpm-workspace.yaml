@@ -1,0 +1,3 @@
+publicHoistPattern:
+  - "@tanstack/query-core"
+strictDepBuilds: false
