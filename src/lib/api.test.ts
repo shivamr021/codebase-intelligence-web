@@ -10,8 +10,9 @@ function fakeBackend(status: number, body: string) {
 }
 
 // api.ts reads VITE_API_BASE_URL at module load, so re-import after each stub.
-async function loadApi(base: string | undefined = "http://api.test") {
-  vi.stubEnv("VITE_API_BASE_URL", base as string);
+// `null` means unset: a default parameter would swallow an explicit `undefined`.
+async function loadApi(base: string | null = "http://api.test") {
+  vi.stubEnv("VITE_API_BASE_URL", base ?? undefined);
   vi.resetModules();
   return import("./api");
 }
@@ -102,7 +103,7 @@ describe("F1 api client: bad config and dead backend", () => {
     "unset VITE_API_BASE_URL: %s names the variable, sends nothing",
     async (_n, call) => {
       const calls = fakeBackend(200, "{}");
-      await expect((async () => call((await loadApi(undefined)).api))()).rejects.toThrow("VITE_API_BASE_URL is not set");
+      await expect((async () => call((await loadApi(null)).api))()).rejects.toThrow("VITE_API_BASE_URL is not set");
       expect(calls).toEqual([]);
     },
   );
