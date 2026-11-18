@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Loader2,
+  Plus,
+  RefreshCw,
   Github,
   ScanSearch,
   MessageSquareCode,
@@ -83,6 +85,51 @@ function Index() {
   const [result, setResult] =
     useState<IngestResponse | null>(null);
 
+  // The URL the shown result came from, so Re-index ignores later typing.
+  const [resultUrl, setResultUrl] = useState("");
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Blocks a second request while one is in flight (double clicks land before re-render).
+  const busy = useRef(false);
+
+  const scrollToResults = () =>
+    requestAnimationFrame(() => {
+      document
+        .getElementById("results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    });
+
+  const reindex = async () => {
+    if (!resultUrl || busy.current) return;
+    busy.current = true;
+
+    setLoading(true);
+    setLoadingLabel("Re-indexing repository");
+    setError(null);
+
+    try {
+      setResult(await api.ingest(resultUrl, true));
+    } catch (err) {
+      // Keep the old results: they are still valid until a re-index succeeds.
+      setError((err as Error).message);
+    } finally {
+      busy.current = false;
+      setLoading(false);
+    }
+  };
+
+  const newRepo = () => {
+    setResult(null);
+    setResultUrl("");
+    setError(null);
+    setUrl("");
+    inputRef.current?.focus();
+  };
+
   const analyse = async (
     e: React.FormEvent
   ) => {
@@ -125,8 +172,9 @@ function Index() {
       const check =
         await api.check(repoName);
 
-      // already indexed → skip ingestion
-      if (check.indexed) {
+      // already indexed with the current index format → skip ingestion
+      // (an old backend sends no `compatible`, which counts as compatible)
+      if (check.indexed && check.compatible !== false) {
         setResult({
           status: "cached",
           repo_name: repoName,
@@ -135,37 +183,25 @@ function Index() {
           graph_ready: true,
           message: `Repository already indexed (${check.chunks} chunks found)`,
         });
+        setResultUrl(trimmed);
 
-        requestAnimationFrame(() => {
-          document
-            .getElementById("results")
-            ?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-        });
+        scrollToResults();
 
         return;
       }
 
-      // STEP 2 — normal ingest
+      // STEP 2 — ingest; an incompatible old index is rebuilt with force
       setLoadingLabel(
         "Indexing repository"
       );
 
       const res =
-        await api.ingest(trimmed);
+        await api.ingest(trimmed, check.indexed);
 
       setResult(res);
+      setResultUrl(trimmed);
 
-      requestAnimationFrame(() => {
-        document
-          .getElementById("results")
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-      });
+      scrollToResults();
 
     } catch (err) {
       setError(
@@ -292,6 +328,7 @@ function Index() {
               </div>
 
               <Input
+                ref={inputRef}
                 value={url}
                 onChange={(e) =>
                   setUrl(e.target.value)
@@ -489,6 +526,30 @@ function Index() {
                   : "—"
               }
             />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={reindex}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Re-index
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={newRepo}
+              disabled={loading}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New repo
+            </Button>
           </div>
 
           <Tabs

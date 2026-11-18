@@ -52,6 +52,8 @@ export interface DiagramResponse {
 export interface CheckResponse {
   indexed: boolean;
   chunks: number;
+  // Missing on old backends: treat as compatible.
+  compatible?: boolean;
 }
 
 export function repoNameFromUrl(url: string): string {
@@ -124,11 +126,11 @@ async function handle<T>(res: Response): Promise<T> {
 }
 
 export const api = {
-  ingest: (github_url: string) =>
+  ingest: (github_url: string, force = false) =>
     request("/api/v1/ingest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ github_url }),
+      body: JSON.stringify(force ? { github_url, force } : { github_url }),
     }).then(handle<IngestResponse>),
 
   ask: (repo_name: string, question: string) =>
