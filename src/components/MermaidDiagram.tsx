@@ -21,6 +21,7 @@ import { sanitizeSvg } from "@/lib/sanitize-svg";
 const MERMAID_CONFIG = {
   startOnLoad: false,
   securityLevel: "strict" as const,
+  suppressErrorRendering: true,
   flowchart: { htmlLabels: false },
   theme: "base" as const,
   themeVariables: {
