@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Plus,
@@ -725,6 +725,15 @@ function LoadingState({
   const isChecking =
     label.toLowerCase().startsWith("check");
 
+  // The backend reports no step progress, so show real elapsed time instead of fake step motion.
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    setElapsed(0);
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [label]);
+
   return (
     <div className="mx-auto mt-8 w-full max-w-md rounded-xl border border-white/10 bg-card/60 p-5 text-left shadow-elevated backdrop-blur">
 
@@ -737,27 +746,29 @@ function LoadingState({
           : `${label}… this may take a minute`}
       </div>
 
+      <div className="mb-3 font-mono text-xs text-muted-foreground">
+        {elapsed}s elapsed
+      </div>
+
       {!isChecking && (
-        <ul className="space-y-2 text-xs text-muted-foreground">
+        <>
+          <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+            The backend runs these steps in order
+          </div>
 
-          {STEPS.map((s, i) => (
-            <li
-              key={s}
-              className="flex items-center gap-2"
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-primary"
-                style={{
-                  animation: `pulse 1.4s ease-in-out ${
-                    i * 0.2
-                  }s infinite`,
-                }}
-              />
+          <ul className="space-y-2 text-xs text-muted-foreground">
+            {STEPS.map((s) => (
+              <li
+                key={s}
+                className="flex items-center gap-2"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
 
-              {s}
-            </li>
-          ))}
-        </ul>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );
