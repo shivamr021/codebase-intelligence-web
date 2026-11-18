@@ -1,25 +1,27 @@
-import { useEffect, useState } from "react";
+import { useContext, useState } from "react";
+import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
 import { Loader2, Network, GitFork, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api, type GraphResponse } from "@/lib/api";
 
 export function GraphTab({ repoName }: { repoName: string }) {
-  const [data, setData] = useState<GraphResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // The app's QueryClientProvider when present; a private client keeps the tab usable when mounted alone.
+  const shared = useContext(QueryClientContext);
+  const [own] = useState(() => (shared ? undefined : new QueryClient()));
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    api
-      .graph(repoName)
-      .then((r) => !cancelled && setData(r))
-      .catch((e) => !cancelled && setError((e as Error).message))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [repoName]);
+  // Cached per repo for the session; failures are retried only by hand.
+  const query = useQuery(
+    {
+      queryKey: ["graph", repoName],
+      queryFn: () => api.graph(repoName),
+      staleTime: Infinity,
+      retry: false,
+    },
+    shared ?? own,
+  );
+  const data: GraphResponse | undefined = query.data;
+  const loading = query.isPending;
+  const error = query.error?.message ?? null;
 
   if (loading)
     return (
@@ -30,7 +32,12 @@ export function GraphTab({ repoName }: { repoName: string }) {
 
   if (error)
     return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">{error}</div>
+      <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+        {error}
+        <Button size="sm" variant="outline" onClick={() => query.refetch()} disabled={query.isFetching}>
+          Retry
+        </Button>
+      </div>
     );
 
   if (!data) return null;
@@ -54,7 +61,9 @@ export function GraphTab({ repoName }: { repoName: string }) {
             Array.isArray(mostDep) && mostDep.length
               ? typeof mostDep[0] === "string"
                 ? mostDep[0]
-                : (mostDep[0]?.[0] ?? "—")
+                : mostDep[0]?.file
+                  ? `${mostDep[0].file} (${mostDep[0].imported_by ?? 0})`
+                  : (mostDep[0]?.[0] ?? "—")
               : "—"
           }
           mono

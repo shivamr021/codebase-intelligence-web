@@ -1,5 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertTriangle, AlertCircle, Info, FileCode2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api, type BugItem } from "@/lib/api";
 
 const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -27,27 +29,16 @@ function getStyle(sev: string) {
 }
 
 export function BugReportTab({ repoName }: { repoName: string }) {
-  const [bugs, setBugs] = useState<BugItem[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    api
-      .bugs(repoName)
-      .then((r) => {
-        if (!cancelled) setBugs(r.bugs);
-      })
-      .catch((e) => {
-        if (!cancelled) setError((e as Error).message);
-      })
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [repoName]);
+  // Cached per repo for the session: a slow LLM call runs once, and failures are retried only by hand.
+  const query = useQuery({
+    queryKey: ["bugs", repoName],
+    queryFn: () => api.bugs(repoName),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const bugs: BugItem[] | null = query.data?.bugs ?? null;
+  const loading = query.isPending;
+  const error = query.error?.message ?? null;
 
   const sorted = useMemo(
     () =>
@@ -80,8 +71,11 @@ export function BugReportTab({ repoName }: { repoName: string }) {
 
   if (error) {
     return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
         {error}
+        <Button size="sm" variant="outline" onClick={() => query.refetch()} disabled={query.isFetching}>
+          Retry
+        </Button>
       </div>
     );
   }

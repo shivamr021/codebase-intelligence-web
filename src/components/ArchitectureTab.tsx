@@ -9,8 +9,10 @@
  *   3. Added a "copy mermaid source" button for devs who want the raw syntax.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api, type DiagramResponse } from "@/lib/api";
 import { MermaidDiagram } from "./MermaidDiagram";
 
@@ -20,22 +22,18 @@ function cleanSummary(raw: string): string {
 }
 
 export function ArchitectureTab({ repoName }: { repoName: string }) {
-  const [data, setData]       = useState<DiagramResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
   const [copied, setCopied]   = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    api
-      .diagram(repoName)
-      .then((r) => !cancelled && setData(r))
-      .catch((e) => !cancelled && setError((e as Error).message))
-      .finally(() => !cancelled && setLoading(false));
-    return () => { cancelled = true; };
-  }, [repoName]);
+  // Cached per repo for the session: the LLM diagram runs once, and failures are retried only by hand.
+  const query = useQuery({
+    queryKey: ["diagram", repoName],
+    queryFn: () => api.diagram(repoName),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const data: DiagramResponse | undefined = query.data;
+  const loading = query.isPending;
+  const error = query.error?.message ?? null;
 
   const handleCopy = () => {
     if (!data?.mermaid) return;
@@ -55,8 +53,11 @@ export function ArchitectureTab({ repoName }: { repoName: string }) {
 
   if (error)
     return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-red-400">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-red-400">
         {error}
+        <Button size="sm" variant="outline" onClick={() => query.refetch()} disabled={query.isFetching}>
+          Retry
+        </Button>
       </div>
     );
 
@@ -81,7 +82,7 @@ export function ArchitectureTab({ repoName }: { repoName: string }) {
         {/* Header bar */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/60">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Dependency Graph
+            Architecture diagram
           </h3>
           <button
             onClick={handleCopy}

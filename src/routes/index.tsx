@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
+  Plus,
+  RefreshCw,
   Github,
   ScanSearch,
   MessageSquareCode,
@@ -59,6 +61,10 @@ export const Route = createFileRoute("/")({
     ],
   }),
 
+  // `?repo=<github url>` keeps the shown repo across reload and Back.
+  validateSearch: (search: Record<string, unknown>): { repo?: string } =>
+    typeof search.repo === "string" && search.repo ? { repo: search.repo } : {},
+
   component: Index,
 });
 
@@ -80,17 +86,92 @@ function Index() {
     null
   );
 
-  const [result, setResult] =
-    useState<IngestResponse | null>(null);
+  // `files_indexed` is unknown for a cached repo on an old backend.
+  const [result, setResult] = useState<
+    (Omit<IngestResponse, "files_indexed"> & { files_indexed?: number }) | null
+  >(null);
 
-  const analyse = async (
-    e: React.FormEvent
-  ) => {
+  // The URL the shown result came from, so Re-index ignores later typing.
+  const [resultUrl, setResultUrl] = useState("");
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Blocks a second request while one is in flight (double clicks land before re-render).
+  const busy = useRef(false);
+
+  const scrollToResults = () =>
+    requestAnimationFrame(() => {
+      document
+        .getElementById("results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    });
+
+  const reindex = async () => {
+    if (!resultUrl || busy.current) return;
+    busy.current = true;
+
+    setLoading(true);
+    setLoadingLabel("Re-indexing repository");
+    setError(null);
+
+    try {
+      setResult(await api.ingest(resultUrl, true));
+    } catch (err) {
+      // Keep the old results: they are still valid until a re-index succeeds.
+      setError((err as Error).message);
+    } finally {
+      busy.current = false;
+      setLoading(false);
+    }
+  };
+
+  const { repo } = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+
+  // The `?repo` value the page state belongs to, so our own navigation is not replayed.
+  const shownRepo = useRef<string | undefined>(undefined);
+
+  const clear = () => {
+    setResult(null);
+    setResultUrl("");
+    setError(null);
+    setUrl("");
+  };
+
+  const newRepo = () => {
+    clear();
+    shownRepo.current = undefined;
+    void navigate({ search: {} });
+    inputRef.current?.focus();
+  };
+
+  // Reload, Back and shared links: restore an indexed repo through /check only, never ingest.
+  useEffect(() => {
+    if (repo === shownRepo.current) return;
+    shownRepo.current = repo;
+    if (!repo) return clear();
+    setUrl(repo);
+    void run(repo, false);
+  }, [repo]);
+
+  const analyse = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    void run(url, true);
+  };
 
-    const trimmed = url.trim();
+  // `mayIngest` is false for a URL that came from the address bar, which stops drive-by Groq spending.
+  const run = async (raw: string, mayIngest: boolean) => {
+    const trimmed = raw.trim();
 
-    if (!trimmed || loading) return;
+    if (!trimmed) return;
+
+    // A new submit always drops the old repo's results, even when the URL is rejected.
+    setResult(null);
+    setResultUrl("");
 
     if (trimmed.length > 300) {
       setError(
@@ -109,63 +190,60 @@ function Index() {
       return;
     }
 
+    if (mayIngest && trimmed !== repo) {
+      shownRepo.current = trimmed;
+      void navigate({ search: { repo: trimmed } });
+    }
+
     setLoading(true);
     setError(null);
-    setResult(null);
 
     try {
-      const repoName =
-        repoNameFromUrl(trimmed);
-
       // STEP 1 — check existing repo
       setLoadingLabel(
         "Checking repository"
       );
 
       const check =
-        await api.check(repoName);
+        await api.checkUrl(trimmed);
 
-      // already indexed → skip ingestion
-      if (check.indexed) {
+      // The backend owns the name; the URL-derived one is only for a backend that sends none.
+      const repoName =
+        check.repo_name ?? repoNameFromUrl(trimmed);
+
+      // already indexed with the current index format → skip ingestion
+      // (an old backend sends no `compatible`, which counts as compatible)
+      if (check.indexed && check.compatible !== false) {
         setResult({
           status: "cached",
           repo_name: repoName,
-          files_indexed: 0,
+          files_indexed: check.files_indexed,
           chunks_stored: check.chunks,
-          graph_ready: true,
+          graph_ready: check.graph_ready ?? false,
           message: `Repository already indexed (${check.chunks} chunks found)`,
         });
+        setResultUrl(trimmed);
 
-        requestAnimationFrame(() => {
-          document
-            .getElementById("results")
-            ?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-        });
+        scrollToResults();
 
         return;
       }
 
-      // STEP 2 — normal ingest
+      // Not indexed (or an old index): wait for an explicit Analyse.
+      if (!mayIngest) return;
+
+      // STEP 2 — ingest; an incompatible old index is rebuilt with force
       setLoadingLabel(
         "Indexing repository"
       );
 
       const res =
-        await api.ingest(trimmed);
+        await api.ingest(trimmed, check.indexed);
 
       setResult(res);
+      setResultUrl(trimmed);
 
-      requestAnimationFrame(() => {
-        document
-          .getElementById("results")
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-      });
+      scrollToResults();
 
     } catch (err) {
       setError(
@@ -292,6 +370,7 @@ function Index() {
               </div>
 
               <Input
+                ref={inputRef}
                 value={url}
                 onChange={(e) =>
                   setUrl(e.target.value)
@@ -473,7 +552,7 @@ function Index() {
 
             <Stat
               label="Files"
-              value={result.files_indexed}
+              value={result.files_indexed ?? "—"}
             />
 
             <Stat
@@ -489,6 +568,30 @@ function Index() {
                   : "—"
               }
             />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={reindex}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Re-index
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={newRepo}
+              disabled={loading}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New repo
+            </Button>
           </div>
 
           <Tabs
@@ -659,6 +762,15 @@ function LoadingState({
   const isChecking =
     label.toLowerCase().startsWith("check");
 
+  // The backend reports no step progress, so show real elapsed time instead of fake step motion.
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    setElapsed(0);
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [label]);
+
   return (
     <div className="mx-auto mt-8 w-full max-w-md rounded-xl border border-white/10 bg-card/60 p-5 text-left shadow-elevated backdrop-blur">
 
@@ -671,27 +783,29 @@ function LoadingState({
           : `${label}… this may take a minute`}
       </div>
 
+      <div className="mb-3 font-mono text-xs text-muted-foreground">
+        {elapsed}s elapsed
+      </div>
+
       {!isChecking && (
-        <ul className="space-y-2 text-xs text-muted-foreground">
+        <>
+          <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+            The backend runs these steps in order
+          </div>
 
-          {STEPS.map((s, i) => (
-            <li
-              key={s}
-              className="flex items-center gap-2"
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-primary"
-                style={{
-                  animation: `pulse 1.4s ease-in-out ${
-                    i * 0.2
-                  }s infinite`,
-                }}
-              />
+          <ul className="space-y-2 text-xs text-muted-foreground">
+            {STEPS.map((s) => (
+              <li
+                key={s}
+                className="flex items-center gap-2"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
 
-              {s}
-            </li>
-          ))}
-        </ul>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

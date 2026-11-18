@@ -1,8 +1,11 @@
 import { useState } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Loader2, SendHorizontal, FileCode2, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
+import { stripMarkers } from "@/lib/answer";
 
 interface Message {
   role: "user" | "assistant";
@@ -17,6 +20,23 @@ function extractCitations(answer: string): string[] {
   const set = new Set(matches.map((m) => m.replace(/`/g, "")));
   return Array.from(set);
 }
+
+const MARKDOWN_COMPONENTS: Components = {
+  // react-markdown empties unsafe URLs such as `javascript:`; render those links as plain text.
+  a: ({ href, children }) =>
+    href ? (
+      <a href={href} target="_blank" rel="noreferrer noopener" className="text-primary underline">
+        {children}
+      </a>
+    ) : (
+      <>{children}</>
+    ),
+  pre: ({ children }) => (
+    <pre className="overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs">
+      {children}
+    </pre>
+  ),
+};
 
 export function QATab({ repoName }: { repoName: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -84,9 +104,18 @@ export function QATab({ repoName }: { repoName: string }) {
                   <span className="ml-2 text-muted-foreground/70">· {m.chunks} chunks used</span>
                 )}
               </div>
-              <div className="prose prose-invert max-w-none whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
-                {m.content}
-              </div>
+              {m.role === "assistant" ? (
+                // Markdown with no raw HTML (react-markdown shows it as text) and no unsafe links.
+                <div className="prose prose-invert max-w-none break-words text-sm leading-relaxed text-foreground/90">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+                    {stripMarkers(m.content)}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="prose prose-invert max-w-none whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+                  {m.content}
+                </div>
+              )}
               {m.citations && m.citations.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2">
                   {m.citations.map((c) => (

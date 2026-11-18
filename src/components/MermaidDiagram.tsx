@@ -1,24 +1,27 @@
 /**
  * MermaidDiagram.tsx
  *
- * Key fixes vs previous version:
- *   1. securityLevel: "loose" — "strict" sandboxes the SVG in an iframe,
- *      which strips all theme CSS variables and makes text invisible.
+ * Key choices:
+ *   1. securityLevel: "strict" and flowchart.htmlLabels: false — chart text
+ *      can come from an attacker, so no click handlers and no HTML labels;
+ *      labels render as SVG text.
  *   2. theme: "base" with explicit themeVariables — the "dark" preset conflicts
  *      with our custom variables; "base" is a clean slate we fully control.
- *   3. SVG gets explicit CSS injected after render to guarantee text color —
- *      defence against any remaining DOMPurify stripping of style attrs.
- *   4. Unique re-init on each chart change via mermaid.initialize() call
+ *   3. SVG gets explicit CSS injected after render to guarantee text color.
+ *   4. The SVG passes through sanitizeSvg (DOMPurify, SVG profile) before it
+ *      is inserted into the page.
+ *   5. Unique re-init on each chart change via mermaid.initialize() call
  *      inside the effect, so config is always fresh.
  */
 
 import { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
-import DOMPurify from "dompurify";
+import { sanitizeSvg } from "@/lib/sanitize-svg";
 
 const MERMAID_CONFIG = {
   startOnLoad: false,
-  securityLevel: "loose" as const,   // CRITICAL: "strict" breaks text visibility
+  securityLevel: "strict" as const,
+  flowchart: { htmlLabels: false },
   theme: "base" as const,
   themeVariables: {
     // Backgrounds
@@ -108,7 +111,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
           `<style>`
         ) || `<svg><style>${SVG_OVERRIDE_CSS}</style>${svg.replace(/<svg[^>]*>/, '').replace('</svg>', '')}</svg>`;
 
-        containerRef.current.innerHTML = svgWithStyles;
+        containerRef.current.innerHTML = sanitizeSvg(svgWithStyles);
 
         // Post-render: force text color on all text nodes as final guarantee
         containerRef.current.querySelectorAll("text, tspan").forEach((el) => {
