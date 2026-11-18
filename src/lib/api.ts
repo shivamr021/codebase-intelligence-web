@@ -54,6 +54,8 @@ export interface CheckResponse {
   chunks: number;
   // Missing on old backends: treat as compatible.
   compatible?: boolean;
+  files_indexed?: number;
+  graph_ready?: boolean;
 }
 
 export function repoNameFromUrl(url: string): string {

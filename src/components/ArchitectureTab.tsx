@@ -81,7 +81,7 @@ export function ArchitectureTab({ repoName }: { repoName: string }) {
         {/* Header bar */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/60">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Dependency Graph
+            Architecture diagram
           </h3>
           <button
             onClick={handleCopy}

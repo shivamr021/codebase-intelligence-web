@@ -82,8 +82,10 @@ function Index() {
     null
   );
 
-  const [result, setResult] =
-    useState<IngestResponse | null>(null);
+  // `files_indexed` is unknown for a cached repo on an old backend.
+  const [result, setResult] = useState<
+    (Omit<IngestResponse, "files_indexed"> & { files_indexed?: number }) | null
+  >(null);
 
   // The URL the shown result came from, so Re-index ignores later typing.
   const [resultUrl, setResultUrl] = useState("");
@@ -139,6 +141,10 @@ function Index() {
 
     if (!trimmed || loading) return;
 
+    // A new submit always drops the old repo's results, even when the URL is rejected.
+    setResult(null);
+    setResultUrl("");
+
     if (trimmed.length > 300) {
       setError(
         "URL is too long. Please enter a valid GitHub repository URL."
@@ -158,7 +164,6 @@ function Index() {
 
     setLoading(true);
     setError(null);
-    setResult(null);
 
     try {
       const repoName =
@@ -178,9 +183,9 @@ function Index() {
         setResult({
           status: "cached",
           repo_name: repoName,
-          files_indexed: 0,
+          files_indexed: check.files_indexed,
           chunks_stored: check.chunks,
-          graph_ready: true,
+          graph_ready: check.graph_ready ?? false,
           message: `Repository already indexed (${check.chunks} chunks found)`,
         });
         setResultUrl(trimmed);
@@ -510,7 +515,7 @@ function Index() {
 
             <Stat
               label="Files"
-              value={result.files_indexed}
+              value={result.files_indexed ?? "—"}
             />
 
             <Stat

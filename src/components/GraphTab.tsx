@@ -54,7 +54,9 @@ export function GraphTab({ repoName }: { repoName: string }) {
             Array.isArray(mostDep) && mostDep.length
               ? typeof mostDep[0] === "string"
                 ? mostDep[0]
-                : (mostDep[0]?.[0] ?? "—")
+                : mostDep[0]?.file
+                  ? `${mostDep[0].file} (${mostDep[0].imported_by ?? 0})`
+                  : (mostDep[0]?.[0] ?? "—")
               : "—"
           }
           mono
