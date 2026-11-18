@@ -22,6 +22,8 @@ const MERMAID_CONFIG = {
   startOnLoad: false,
   securityLevel: "strict" as const,
   suppressErrorRendering: true,
+  // Root-level htmlLabels wins over flowchart.htmlLabels in mermaid >= 11.12.3.
+  htmlLabels: false,
   flowchart: { htmlLabels: false },
   theme: "base" as const,
   themeVariables: {
