@@ -56,6 +56,8 @@ export interface CheckResponse {
   compatible?: boolean;
   files_indexed?: number;
   graph_ready?: boolean;
+  // The backend's collection name for this URL; every later call uses it.
+  repo_name?: string;
 }
 
 export function repoNameFromUrl(url: string): string {
@@ -160,5 +162,11 @@ export const api = {
   check: (repo_name: string) =>
     request(
       `/api/v1/check?repo_name=${encodeURIComponent(repo_name)}`
+    ).then(handle<CheckResponse>),
+
+  // The backend derives the owner-aware name (`owner--repo`) from the URL (AD8).
+  checkUrl: (github_url: string) =>
+    request(
+      `/api/v1/check?github_url=${encodeURIComponent(github_url)}`
     ).then(handle<CheckResponse>),
 };

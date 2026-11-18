@@ -199,16 +199,17 @@ function Index() {
     setError(null);
 
     try {
-      const repoName =
-        repoNameFromUrl(trimmed);
-
       // STEP 1 — check existing repo
       setLoadingLabel(
         "Checking repository"
       );
 
       const check =
-        await api.check(repoName);
+        await api.checkUrl(trimmed);
+
+      // The backend owns the name; the URL-derived one is only for a backend that sends none.
+      const repoName =
+        check.repo_name ?? repoNameFromUrl(trimmed);
 
       // already indexed with the current index format → skip ingestion
       // (an old backend sends no `compatible`, which counts as compatible)
