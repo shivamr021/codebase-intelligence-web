@@ -12,5 +12,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Page tests render routes that call src/lib/api.ts, which needs an API address.
+    env: { VITE_API_BASE_URL: "http://api.test" },
   },
 });
