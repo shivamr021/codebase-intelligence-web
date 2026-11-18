@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
@@ -60,6 +60,10 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+
+  // `?repo=<github url>` keeps the shown repo across reload and Back.
+  validateSearch: (search: Record<string, unknown>): { repo?: string } =>
+    typeof search.repo === "string" && search.repo ? { repo: search.repo } : {},
 
   component: Index,
 });
@@ -124,22 +128,46 @@ function Index() {
     }
   };
 
-  const newRepo = () => {
+  const { repo } = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+
+  // The `?repo` value the page state belongs to, so our own navigation is not replayed.
+  const shownRepo = useRef<string | undefined>(undefined);
+
+  const clear = () => {
     setResult(null);
     setResultUrl("");
     setError(null);
     setUrl("");
+  };
+
+  const newRepo = () => {
+    clear();
+    shownRepo.current = undefined;
+    void navigate({ search: {} });
     inputRef.current?.focus();
   };
 
-  const analyse = async (
-    e: React.FormEvent
-  ) => {
+  // Reload, Back and shared links: restore an indexed repo through /check only, never ingest.
+  useEffect(() => {
+    if (repo === shownRepo.current) return;
+    shownRepo.current = repo;
+    if (!repo) return clear();
+    setUrl(repo);
+    void run(repo, false);
+  }, [repo]);
+
+  const analyse = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    void run(url, true);
+  };
 
-    const trimmed = url.trim();
+  // `mayIngest` is false for a URL that came from the address bar, which stops drive-by Groq spending.
+  const run = async (raw: string, mayIngest: boolean) => {
+    const trimmed = raw.trim();
 
-    if (!trimmed || loading) return;
+    if (!trimmed) return;
 
     // A new submit always drops the old repo's results, even when the URL is rejected.
     setResult(null);
@@ -160,6 +188,11 @@ function Index() {
         "Please enter a valid public GitHub repository URL (https://github.com/owner/repo)."
       );
       return;
+    }
+
+    if (mayIngest && trimmed !== repo) {
+      shownRepo.current = trimmed;
+      void navigate({ search: { repo: trimmed } });
     }
 
     setLoading(true);
@@ -194,6 +227,9 @@ function Index() {
 
         return;
       }
+
+      // Not indexed (or an old index): wait for an explicit Analyse.
+      if (!mayIngest) return;
 
       // STEP 2 — ingest; an incompatible old index is rebuilt with force
       setLoadingLabel(
